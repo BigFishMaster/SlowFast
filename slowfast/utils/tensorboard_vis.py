@@ -53,11 +53,6 @@ class TensorboardWriter(object):
         )
 
         if cfg.TENSORBOARD.CLASS_NAMES_PATH != "":
-            if cfg.DETECTION.ENABLE:
-                logger.info(
-                    "Plotting confusion matrix is currently \
-                    not supported for detection."
-                )
             (
                 self.class_names,
                 self.parent_map,
@@ -69,11 +64,6 @@ class TensorboardWriter(object):
             )
 
             if cfg.TENSORBOARD.HISTOGRAM.ENABLE:
-                if cfg.DETECTION.ENABLE:
-                    logger.info(
-                        "Plotting histogram is not currently \
-                    supported for detection tasks."
-                    )
                 if cfg.TENSORBOARD.HISTOGRAM.SUBSET_PATH != "":
                     _, _, self.hist_subset_classes = get_class_names(
                         cfg.TENSORBOARD.CLASS_NAMES_PATH,
@@ -100,67 +90,66 @@ class TensorboardWriter(object):
             labels (tensor or list of tensors): list of labels.
             global step (Optional[int]): current step in eval/test.
         """
-        if not self.cfg.DETECTION.ENABLE:
-            cmtx = None
-            if self.cfg.TENSORBOARD.CONFUSION_MATRIX.ENABLE:
-                cmtx = vis_utils.get_confusion_matrix(
-                    preds, labels, self.cfg.MODEL.NUM_CLASSES
-                )
-                # Add full confusion matrix.
+        cmtx = None
+        if self.cfg.TENSORBOARD.CONFUSION_MATRIX.ENABLE:
+            cmtx = vis_utils.get_confusion_matrix(
+                preds, labels, self.cfg.MODEL.NUM_CLASSES
+            )
+            # Add full confusion matrix.
+            add_confusion_matrix(
+                self.writer,
+                cmtx,
+                self.cfg.MODEL.NUM_CLASSES,
+                global_step=global_step,
+                class_names=self.class_names,
+                figsize=self.cm_figsize,
+            )
+            # If a list of subset is provided, plot confusion matrix subset.
+            if self.cm_subset_classes is not None:
                 add_confusion_matrix(
                     self.writer,
                     cmtx,
                     self.cfg.MODEL.NUM_CLASSES,
                     global_step=global_step,
+                    subset_ids=self.cm_subset_classes,
                     class_names=self.class_names,
+                    tag="Confusion Matrix Subset",
                     figsize=self.cm_figsize,
                 )
-                # If a list of subset is provided, plot confusion matrix subset.
-                if self.cm_subset_classes is not None:
+            # If a parent-child classes mapping is provided, plot confusion
+            # matrices grouped by parent classes.
+            if self.parent_map is not None:
+                # Get list of tags (parent categories names) and their children.
+                for parent_class, children_ls in self.parent_map.items():
+                    tag = (
+                        "Confusion Matrices Grouped by Parent Classes/"
+                        + parent_class
+                    )
                     add_confusion_matrix(
                         self.writer,
                         cmtx,
                         self.cfg.MODEL.NUM_CLASSES,
                         global_step=global_step,
-                        subset_ids=self.cm_subset_classes,
+                        subset_ids=children_ls,
                         class_names=self.class_names,
-                        tag="Confusion Matrix Subset",
+                        tag=tag,
                         figsize=self.cm_figsize,
                     )
-                # If a parent-child classes mapping is provided, plot confusion
-                # matrices grouped by parent classes.
-                if self.parent_map is not None:
-                    # Get list of tags (parent categories names) and their children.
-                    for parent_class, children_ls in self.parent_map.items():
-                        tag = (
-                            "Confusion Matrices Grouped by Parent Classes/"
-                            + parent_class
-                        )
-                        add_confusion_matrix(
-                            self.writer,
-                            cmtx,
-                            self.cfg.MODEL.NUM_CLASSES,
-                            global_step=global_step,
-                            subset_ids=children_ls,
-                            class_names=self.class_names,
-                            tag=tag,
-                            figsize=self.cm_figsize,
-                        )
-            if self.cfg.TENSORBOARD.HISTOGRAM.ENABLE:
-                if cmtx is None:
-                    cmtx = vis_utils.get_confusion_matrix(
-                        preds, labels, self.cfg.MODEL.NUM_CLASSES
-                    )
-                plot_hist(
-                    self.writer,
-                    cmtx,
-                    self.cfg.MODEL.NUM_CLASSES,
-                    self.cfg.TENSORBOARD.HISTOGRAM.TOPK,
-                    global_step=global_step,
-                    subset_ids=self.hist_subset_classes,
-                    class_names=self.class_names,
-                    figsize=self.hist_figsize,
+        if self.cfg.TENSORBOARD.HISTOGRAM.ENABLE:
+            if cmtx is None:
+                cmtx = vis_utils.get_confusion_matrix(
+                    preds, labels, self.cfg.MODEL.NUM_CLASSES
                 )
+            plot_hist(
+                self.writer,
+                cmtx,
+                self.cfg.MODEL.NUM_CLASSES,
+                self.cfg.TENSORBOARD.HISTOGRAM.TOPK,
+                global_step=global_step,
+                subset_ids=self.hist_subset_classes,
+                class_names=self.class_names,
+                figsize=self.hist_figsize,
+            )
 
     def close(self):
         self.writer.flush()

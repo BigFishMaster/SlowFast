@@ -22,8 +22,6 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
     dimension, followed by averaging the softmax scores across all Nx3 views to
     form a video-level prediction. All video predictions are compared to
     ground-truth labels and the final testing performance is logged.
-    For detection:
-    Perform fully-convolutional testing on the full frames without crop.
     Args:
         test_loader (loader): video testing loader.
         model (model): the pretrained video model to test.
