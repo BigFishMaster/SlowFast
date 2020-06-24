@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import logging
 import numpy as np
 import os
@@ -131,6 +129,8 @@ def spatial_sampling(
         max_scale (int): the maximal size of scaling.
         crop_size (int): the size of height and width used to crop the
             frames.
+        random_horizontal_flip (bool): if True, do horizontal flip randomly.
+            If False, do nothing.
         inverse_uniform_sampling (bool): if True, sample uniformly in
             [1 / max_scale, 1 / min_scale] and take a reciprocal to get the
             scale. If False, take a uniform sample from [min_scale,

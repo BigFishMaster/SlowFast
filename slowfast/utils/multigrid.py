@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
-"""Helper functions for multigrid training."""
-
 import numpy as np
-
 import slowfast.utils.logging as logging
 
 logger = logging.get_logger(__name__)

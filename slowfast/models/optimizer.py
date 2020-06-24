@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
-"""Optimizer."""
-
 import torch
-
 import slowfast.utils.lr_policy as lr_policy
 
 

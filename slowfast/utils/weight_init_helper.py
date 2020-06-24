@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
-"""Utility function for weight initialization"""
-
 import torch.nn as nn
 from fvcore.nn.weight_init import c2_msra_fill
 

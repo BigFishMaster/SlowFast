@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
-"""Video models."""
-
 import torch
 import torch.nn as nn
 
@@ -151,7 +146,6 @@ class SlowFast(nn.Module):
         """
         super(SlowFast, self).__init__()
         self.norm_module = get_norm(cfg)
-        self.enable_detection = cfg.DETECTION.ENABLE
         self.num_pathways = 2
         self._construct_network(cfg)
         init_helper.init_weights(
@@ -326,55 +320,31 @@ class SlowFast(nn.Module):
             norm_module=self.norm_module,
         )
 
-        if cfg.DETECTION.ENABLE:
-            self.head = head_helper.ResNetRoIHead(
-                dim_in=[
-                    width_per_group * 32,
-                    width_per_group * 32 // cfg.SLOWFAST.BETA_INV,
+        self.head = head_helper.ResNetBasicHead(
+            dim_in=[
+                width_per_group * 32,
+                width_per_group * 32 // cfg.SLOWFAST.BETA_INV,
+            ],
+            num_classes=cfg.MODEL.NUM_CLASSES,
+            pool_size=[None, None]
+            if cfg.MULTIGRID.SHORT_CYCLE
+            else [
+                [
+                    cfg.DATA.NUM_FRAMES
+                    // cfg.SLOWFAST.ALPHA
+                    // pool_size[0][0],
+                    cfg.DATA.CROP_SIZE // 32 // pool_size[0][1],
+                    cfg.DATA.CROP_SIZE // 32 // pool_size[0][2],
                 ],
-                num_classes=cfg.MODEL.NUM_CLASSES,
-                pool_size=[
-                    [
-                        cfg.DATA.NUM_FRAMES
-                        // cfg.SLOWFAST.ALPHA
-                        // pool_size[0][0],
-                        1,
-                        1,
-                    ],
-                    [cfg.DATA.NUM_FRAMES // pool_size[1][0], 1, 1],
+                [
+                    cfg.DATA.NUM_FRAMES // pool_size[1][0],
+                    cfg.DATA.CROP_SIZE // 32 // pool_size[1][1],
+                    cfg.DATA.CROP_SIZE // 32 // pool_size[1][2],
                 ],
-                resolution=[[cfg.DETECTION.ROI_XFORM_RESOLUTION] * 2] * 2,
-                scale_factor=[cfg.DETECTION.SPATIAL_SCALE_FACTOR] * 2,
-                dropout_rate=cfg.MODEL.DROPOUT_RATE,
-                act_func=cfg.MODEL.HEAD_ACT,
-                aligned=cfg.DETECTION.ALIGNED,
-            )
-        else:
-            self.head = head_helper.ResNetBasicHead(
-                dim_in=[
-                    width_per_group * 32,
-                    width_per_group * 32 // cfg.SLOWFAST.BETA_INV,
-                ],
-                num_classes=cfg.MODEL.NUM_CLASSES,
-                pool_size=[None, None]
-                if cfg.MULTIGRID.SHORT_CYCLE
-                else [
-                    [
-                        cfg.DATA.NUM_FRAMES
-                        // cfg.SLOWFAST.ALPHA
-                        // pool_size[0][0],
-                        cfg.DATA.CROP_SIZE // 32 // pool_size[0][1],
-                        cfg.DATA.CROP_SIZE // 32 // pool_size[0][2],
-                    ],
-                    [
-                        cfg.DATA.NUM_FRAMES // pool_size[1][0],
-                        cfg.DATA.CROP_SIZE // 32 // pool_size[1][1],
-                        cfg.DATA.CROP_SIZE // 32 // pool_size[1][2],
-                    ],
-                ],  # None for AdaptiveAvgPool3d((1, 1, 1))
-                dropout_rate=cfg.MODEL.DROPOUT_RATE,
-                act_func=cfg.MODEL.HEAD_ACT,
-            )
+            ],  # None for AdaptiveAvgPool3d((1, 1, 1))
+            dropout_rate=cfg.MODEL.DROPOUT_RATE,
+            act_func=cfg.MODEL.HEAD_ACT,
+        )
 
     def forward(self, x, bboxes=None):
         x = self.s1(x)
@@ -389,10 +359,7 @@ class SlowFast(nn.Module):
         x = self.s4(x)
         x = self.s4_fuse(x)
         x = self.s5(x)
-        if self.enable_detection:
-            x = self.head(x, bboxes)
-        else:
-            x = self.head(x)
+        x = self.head(x)
         return x
 
 
@@ -422,7 +389,6 @@ class ResNet(nn.Module):
         """
         super(ResNet, self).__init__()
         self.norm_module = get_norm(cfg)
-        self.enable_detection = cfg.DETECTION.ENABLE
         self.num_pathways = 1
         self._construct_network(cfg)
         init_helper.init_weights(
@@ -547,33 +513,21 @@ class ResNet(nn.Module):
             norm_module=self.norm_module,
         )
 
-        if self.enable_detection:
-            self.head = head_helper.ResNetRoIHead(
-                dim_in=[width_per_group * 32],
-                num_classes=cfg.MODEL.NUM_CLASSES,
-                pool_size=[[cfg.DATA.NUM_FRAMES // pool_size[0][0], 1, 1]],
-                resolution=[[cfg.DETECTION.ROI_XFORM_RESOLUTION] * 2],
-                scale_factor=[cfg.DETECTION.SPATIAL_SCALE_FACTOR],
-                dropout_rate=cfg.MODEL.DROPOUT_RATE,
-                act_func=cfg.MODEL.HEAD_ACT,
-                aligned=cfg.DETECTION.ALIGNED,
-            )
-        else:
-            self.head = head_helper.ResNetBasicHead(
-                dim_in=[width_per_group * 32],
-                num_classes=cfg.MODEL.NUM_CLASSES,
-                pool_size=[None, None]
-                if cfg.MULTIGRID.SHORT_CYCLE
-                else [
-                    [
-                        cfg.DATA.NUM_FRAMES // pool_size[0][0],
-                        cfg.DATA.CROP_SIZE // 32 // pool_size[0][1],
-                        cfg.DATA.CROP_SIZE // 32 // pool_size[0][2],
-                    ]
-                ],  # None for AdaptiveAvgPool3d((1, 1, 1))
-                dropout_rate=cfg.MODEL.DROPOUT_RATE,
-                act_func=cfg.MODEL.HEAD_ACT,
-            )
+        self.head = head_helper.ResNetBasicHead(
+            dim_in=[width_per_group * 32],
+            num_classes=cfg.MODEL.NUM_CLASSES,
+            pool_size=[None, None]
+            if cfg.MULTIGRID.SHORT_CYCLE
+            else [
+                [
+                    cfg.DATA.NUM_FRAMES // pool_size[0][0],
+                    cfg.DATA.CROP_SIZE // 32 // pool_size[0][1],
+                    cfg.DATA.CROP_SIZE // 32 // pool_size[0][2],
+                ]
+            ],  # None for AdaptiveAvgPool3d((1, 1, 1))
+            dropout_rate=cfg.MODEL.DROPOUT_RATE,
+            act_func=cfg.MODEL.HEAD_ACT,
+        )
 
     def forward(self, x, bboxes=None):
         x = self.s1(x)
@@ -584,8 +538,5 @@ class ResNet(nn.Module):
         x = self.s3(x)
         x = self.s4(x)
         x = self.s5(x)
-        if self.enable_detection:
-            x = self.head(x, bboxes)
-        else:
-            x = self.head(x)
+        x = self.head(x)
         return x

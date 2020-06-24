@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
-"""Logging."""
-
 import builtins
 import decimal
 import functools

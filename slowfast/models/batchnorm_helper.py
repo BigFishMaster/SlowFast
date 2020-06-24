@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
-"""BatchNorm (BN) utility functions and custom batch-size BN implementations"""
-
 from functools import partial
 import torch
 import torch.distributed as dist

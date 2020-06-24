@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
 import json
-import logging
 import math
 import numpy as np
 import os
@@ -96,13 +92,7 @@ def _get_model_analysis_input(cfg, is_train):
     for i in range(len(model_inputs)):
         model_inputs[i] = model_inputs[i].unsqueeze(0).cuda(non_blocking=True)
 
-    # If detection is enabled, count flops for one proposal.
-    if cfg.DETECTION.ENABLE:
-        bbox = torch.tensor([[0, 0, 1.0, 0, 1.0]])
-        bbox = bbox.cuda()
-        inputs = (model_inputs, bbox)
-    else:
-        inputs = (model_inputs,)
+    inputs = (model_inputs,)
     return inputs
 
 

@@ -1,9 +1,5 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
 import os
 import random
-import torch
 import torch.utils.data
 from fvcore.common.file_io import PathManager
 
@@ -205,10 +201,7 @@ class Kinetics(torch.utils.data.Dataset):
                 self.cfg.DATA.NUM_FRAMES,
                 temporal_sample_index,
                 self.cfg.TEST.NUM_ENSEMBLE_VIEWS,
-                video_meta=self._video_meta[index],
                 target_fps=self.cfg.DATA.TARGET_FPS,
-                backend=self.cfg.DATA.DECODING_BACKEND,
-                max_spatial_scale=max_scale,
             )
 
             # If decoding failed (wrong format, video is too short, and etc),

@@ -6,10 +6,6 @@ PySlowFast is an open source video understanding codebase from FAIR that provide
 - [Non-local Neural Networks](https://arxiv.org/abs/1711.07971)
 - [A Multigrid Method for Efficiently Training Video Models](https://arxiv.org/abs/1912.00998)
 
-<div align="center">
-  <img src="demo/ava_demo.gif" width="600px"/>
-</div>
-
 ## Introduction
 
 The goal of PySlowFast is to provide a high-performance, light-weight pytorch codebase provides state-of-the-art video backbones for video understanding research on different tasks (classification, detection, and etc). It is designed in order to support rapid implementation and evaluation of novel video research ideas. PySlowFast includes implementations of the following backbone network architectures:
@@ -34,7 +30,7 @@ We provide a large set of baseline results and trained models available for down
 
 ## Installation
 
-Please find installation instructions for PyTorch and PySlowFast in [INSTALL.md](INSTALL.md). You may follow the instructions in [DATASET.md](slowfast/datasets/DATASET.md) to prepare the datasets.
+Please find installation instructions for PyTorch and PySlowFast in [INSTALL.md](INSTALL.md). You may follow the instructions in [DATASET.md](docs/DATASET.md) to prepare the datasets.
 
 ## Quick Start
 

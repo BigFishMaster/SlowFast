@@ -1,13 +1,14 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
-from setuptools import find_packages, setup
+from setuptools import setup, find_packages
 
 setup(
-    name="slowfast",
-    version="1.0",
-    author="FAIR",
-    url="unknown",
+    name='slowfast',
     description="SlowFast Video Understanding",
-    packages=find_packages(exclude=("configs", "tests")),
+    version='0.1.0',
+    python_requires='>=3.6',
+    packages=find_packages(),
+    entry_points={
+        'console_scripts': [
+            'sf_runner=slowfast.runner:main',
+        ],
+    },
 )

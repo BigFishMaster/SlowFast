@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
 import logging as log
 import os
 from torch.utils.tensorboard import SummaryWriter
@@ -51,11 +48,6 @@ class TensorboardWriter(object):
         )
 
         if cfg.TENSORBOARD.CLASS_NAMES != "":
-            if cfg.DETECTION.ENABLE:
-                logger.info(
-                    "Plotting confusion matrix is currently \
-                    not supported for detection."
-                )
             (
                 self.class_names,
                 self.parent_map,
@@ -85,48 +77,47 @@ class TensorboardWriter(object):
             labels (tensor or list of tensors): list of labels.
             global step (Optional[int]): current step in eval/test.
         """
-        if not self.cfg.DETECTION.ENABLE:
-            cmtx = None
-            if self.cfg.TENSORBOARD.CONFUSION_MATRIX:
-                cmtx = vis_utils.get_confusion_matrix(
-                    preds, labels, self.cfg.MODEL.NUM_CLASSES
-                )
+        cmtx = None
+        if self.cfg.TENSORBOARD.CONFUSION_MATRIX:
+            cmtx = vis_utils.get_confusion_matrix(
+                preds, labels, self.cfg.MODEL.NUM_CLASSES
+            )
+            add_confusion_matrix(
+                self.writer,
+                cmtx,
+                self.cfg.MODEL.NUM_CLASSES,
+                global_step=global_step,
+                class_names=self.class_names,
+                figsize=self.cm_figsize,
+            )
+            if self.matrix_subset_classes is not None:
                 add_confusion_matrix(
                     self.writer,
                     cmtx,
                     self.cfg.MODEL.NUM_CLASSES,
                     global_step=global_step,
+                    subset=self.matrix_subset_classes,
                     class_names=self.class_names,
+                    tag="Confusion Matrix Subset",
                     figsize=self.cm_figsize,
                 )
-                if self.matrix_subset_classes is not None:
+            if self.parent_map is not None:
+                # Get list of tags (parent categories names) and their children.
+                for parent_class, children_ls in self.parent_map.items():
+                    tag = (
+                        "Confusion Matrices Grouped by Parent Classes/"
+                        + parent_class
+                    )
                     add_confusion_matrix(
                         self.writer,
                         cmtx,
                         self.cfg.MODEL.NUM_CLASSES,
                         global_step=global_step,
-                        subset=self.matrix_subset_classes,
+                        subset=children_ls,
                         class_names=self.class_names,
-                        tag="Confusion Matrix Subset",
+                        tag=tag,
                         figsize=self.cm_figsize,
                     )
-                if self.parent_map is not None:
-                    # Get list of tags (parent categories names) and their children.
-                    for parent_class, children_ls in self.parent_map.items():
-                        tag = (
-                            "Confusion Matrices Grouped by Parent Classes/"
-                            + parent_class
-                        )
-                        add_confusion_matrix(
-                            self.writer,
-                            cmtx,
-                            self.cfg.MODEL.NUM_CLASSES,
-                            global_step=global_step,
-                            subset=children_ls,
-                            class_names=self.class_names,
-                            tag=tag,
-                            figsize=self.cm_figsize,
-                        )
 
     def close(self):
         self.writer.flush()

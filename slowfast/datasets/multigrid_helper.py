@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
-"""Helper functions for multigrid training."""
-
 import numpy as np
 from torch._six import int_classes as _int_classes
 from torch.utils.data.sampler import Sampler
