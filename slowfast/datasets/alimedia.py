@@ -30,10 +30,10 @@ class AliMedia(torch.utils.data.Dataset):
         Construct the Kinetics video loader with a given csv file. The format of
         the csv file is:
         ```
-        path_to_video_1 label_1
-        path_to_video_2 label_2
+        path_to_video_1 start_1, end_1, label_1
+        path_to_video_2 start_2, end_2, label_2
         ...
-        path_to_video_N label_N
+        path_to_video_N start_N, end_N, label_N
         ```
         Args:
             cfg (CfgNode): configs.
