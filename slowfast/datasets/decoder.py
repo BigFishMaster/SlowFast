@@ -2,6 +2,8 @@ import math
 import numpy as np
 import random
 import torch
+import slowfast.utils.logging as logging
+logger = logging.get_logger(__name__)
 
 
 def temporal_sampling(frames, start_idx, end_idx, num_samples):
@@ -55,6 +57,43 @@ def get_start_end_idx(video_size, clip_size, clip_idx, num_clips):
     return start_idx, end_idx
 
 
+def get_start_end_pts(video_size, clip_size, clip_idx, num_clips,
+                      duration, time_base, start_sec, end_sec):
+    all_sec = duration * time_base
+    video_start_idx = int(start_sec / all_sec * video_size)
+    video_end_idx = int(end_sec / all_sec * video_size)
+    delta = max(video_end_idx - clip_size, 0)
+
+    if clip_idx == -1:
+        # Random temporal sampling.
+        if video_start_idx < delta:
+            start_idx = random.uniform(video_start_idx, delta)
+        else:
+            logger.warn("In train, video_start_idx {} should be smaller than delta {}.".format(
+                video_start_idx, delta))
+            new_start_idx = max(delta-clip_size*0.1, 0)
+            start_idx = random.uniform(new_start_idx, delta)
+    else:
+        # Uniformly sample the clip with the given index.
+        if video_start_idx < delta:
+            step = (delta - video_start_idx) / num_clips
+            start_idx = video_start_idx + step * clip_idx
+        else:
+            logger.warn("In test, video_start_idx {} should be smaller than delta {}.".format(
+                video_start_idx, delta))
+            new_start_idx = max(delta-clip_size*0.1, 0)
+            step = (delta - new_start_idx) / num_clips
+            start_idx = video_start_idx + step * clip_idx
+
+    end_idx = start_idx + clip_size - 1
+
+    pts_per_frame = duration / video_size
+    video_start_pts = int(start_idx * pts_per_frame)
+    video_end_pts = int(end_idx * pts_per_frame)
+
+    return video_start_idx, video_end_pts
+
+
 def pyav_decode_stream(
     container, start_pts, end_pts, stream, stream_name, buffer_size=0
 ):
@@ -98,7 +137,8 @@ def pyav_decode_stream(
 
 
 def pyav_decode(
-    container, sampling_rate, num_frames, clip_idx, num_clips=10, target_fps=30
+    container, sampling_rate, num_frames, clip_idx, num_clips=10, target_fps=30,
+    start_sec=None, end_sec=None
 ):
     """
     Convert the video from its original fps to the target_fps. If the video
@@ -119,6 +159,8 @@ def pyav_decode(
             given video.
         target_fps (int): the input video may has different fps, convert it to
             the target video fps before frame sampling.
+        start_sec (float): starting second of the video, with a specified label.
+        end_sec (float): ending second of the video, with a specified label.
     Returns:
         frames (tensor): decoded frames from the video. Return None if the no
             video stream was found.
@@ -135,19 +177,33 @@ def pyav_decode(
     if duration is None:
         # If failed to fetch the decoding information, decode the entire video.
         decode_all_video = True
-        video_start_pts, video_end_pts = 0, math.inf
+        if start_sec is not None and end_sec is not None:
+            tb = float(container.streams.video[0].time_base)
+            video_start_pts = int(start_sec/tb)
+            video_end_pts = int(end_sec/tb)
+        else:
+            video_start_pts, video_end_pts = 0, math.inf
     else:
         # Perform selective decoding.
         decode_all_video = False
-        start_idx, end_idx = get_start_end_idx(
-            frames_length,
-            int(sampling_rate * num_frames / target_fps * fps),
-            clip_idx,
-            num_clips,
-        )
-        timebase = duration / frames_length
-        video_start_pts = int(start_idx * timebase)
-        video_end_pts = int(end_idx * timebase)
+        if start_sec is not None and end_sec is not None:
+            tb = float(container.streams.video[0].time_base)
+            video_start_pts, video_end_pts = get_start_end_pts(frames_length,
+                int(num_frames * sampling_rate * fps / target_fps),
+                clip_idx, num_clips, duration, tb, start_sec, end_sec)
+        else:
+            start_idx, end_idx = get_start_end_idx(
+                frames_length,
+                int(num_frames * sampling_rate * fps / target_fps),
+                clip_idx,
+                num_clips,
+            )
+            # container.streams.video[0]: Fraction(1, 15360)
+            # timebase: 1024
+            # pts: in timebase units.
+            timebase = duration / frames_length
+            video_start_pts = int(start_idx * timebase)
+            video_end_pts = int(end_idx * timebase)
 
     frames = None
     # If video stream was found, fetch video frames from the video.
@@ -173,6 +229,8 @@ def decode(
     clip_idx=-1,
     num_clips=10,
     target_fps=30,
+    start_sec=None,
+    end_sec=None,
 ):
     """
     Decode the video and perform temporal sampling.
@@ -196,10 +254,11 @@ def decode(
         max_spatial_scale (int): keep the aspect ratio and resize the frame so
             that shorter edge size is max_spatial_scale. Only used in
             `torchvision` backend.
+        start_sec (float): starting second of the video, with a specified label.
+        end_sec (float): ending second of the video, with a specified label.
     Returns:
         frames (tensor): decoded frames from the video.
     """
-    # Currently support two decoders: 1) PyAV, and 2) TorchVision.
     assert clip_idx >= -1, "Not valied clip_idx {}".format(clip_idx)
     try:
         frames, fps, decode_all_video = pyav_decode(
@@ -209,9 +268,11 @@ def decode(
             clip_idx,
             num_clips,
             target_fps,
+            start_sec,
+            end_sec,
         )
     except Exception as e:
-        print("Failed to decode by {} with exception: {}".format(backend, e))
+        logger.exception("Failed to decode by pyav with exception: {}".format(e))
         return None
 
     # Return None if the frames was not decoded successfully.

@@ -15,16 +15,6 @@ logger = logging.get_logger(__name__)
 
 @DATASET_REGISTRY.register()
 class AliMedia(torch.utils.data.Dataset):
-    """
-    Kinetics video loader. Construct the Kinetics video loader, then sample
-    clips from the videos. For training and validation, a single clip is
-    randomly sampled from every video with random cropping, scaling, and
-    flipping. For testing, multiple clips are uniformaly sampled from every
-    video with uniform cropping. For uniform cropping, we take the left, center,
-    and right crop if the width is larger than height, or take top, center, and
-    bottom crop if the height is larger than the width.
-    """
-
     def __init__(self, cfg, mode, num_retries=10):
         """
         Construct the Kinetics video loader with a given csv file. The format of
@@ -49,7 +39,6 @@ class AliMedia(torch.utils.data.Dataset):
         self.mode = mode
         self.cfg = cfg
 
-        self._video_meta = {}
         self._num_retries = num_retries
         # For training or validation mode, one single clip is sampled from every
         # video. For testing, NUM_ENSEMBLE_VIEWS clips are sampled from every
@@ -88,9 +77,8 @@ class AliMedia(torch.utils.data.Dataset):
                         os.path.join(self.cfg.DATA.PATH_PREFIX, path)
                     )
                     self._labels.append(int(label))
-                    self._duration.append([start, end])
+                    self._duration.append((float(start), float(end)))
                     self._spatial_temporal_idx.append(idx)
-                    self._video_meta[clip_idx * self._num_clips + idx] = {}
         assert (
             len(self._path_to_videos) > 0
         ), "Failed to load Kinetics split {} from {}".format(
@@ -188,6 +176,8 @@ class AliMedia(torch.utils.data.Dataset):
                 )
             # Select a random video if the current video was not able to access.
             if video_container is None:
+                logger.warn("In mode {}, load video container is None. "
+                            "Random index will be used.".format(self.mode))
                 index = random.randint(0, len(self._path_to_videos) - 1)
                 continue
 
@@ -199,11 +189,15 @@ class AliMedia(torch.utils.data.Dataset):
                 temporal_sample_index,
                 self.cfg.TEST.NUM_ENSEMBLE_VIEWS,
                 target_fps=self.cfg.DATA.TARGET_FPS,
+                start_sec=self._duration[index][0],
+                end_sec=self._duration[index][1],
             )
 
             # If decoding failed (wrong format, video is too short, and etc),
             # select another video.
             if frames is None:
+                logger.warn("In mode {}, frames is None. "
+                            "Random index will be used.".format(self.mode))
                 index = random.randint(0, len(self._path_to_videos) - 1)
                 continue
 
