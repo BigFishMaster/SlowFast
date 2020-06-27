@@ -322,17 +322,13 @@ class SlowFast(nn.Module):
 
         self.head = head_helper.ResNetBasicHead(
             dim_in=[
-                width_per_group * 32,
-                width_per_group * 32 // cfg.SLOWFAST.BETA_INV,
+                width_per_group * 32,  # slow
+                width_per_group * 32 // cfg.SLOWFAST.BETA_INV,  # fast
             ],
             num_classes=cfg.MODEL.NUM_CLASSES,
-            pool_size=[None, None]
-            if cfg.MULTIGRID.SHORT_CYCLE
-            else [
+            pool_size=[None, None] if cfg.MULTIGRID.SHORT_CYCLE else [
                 [
-                    cfg.DATA.NUM_FRAMES
-                    // cfg.SLOWFAST.ALPHA
-                    // pool_size[0][0],
+                    cfg.DATA.NUM_FRAMES // cfg.SLOWFAST.ALPHA // pool_size[0][0],
                     cfg.DATA.CROP_SIZE // 32 // pool_size[0][1],
                     cfg.DATA.CROP_SIZE // 32 // pool_size[0][2],
                 ],
@@ -516,9 +512,7 @@ class ResNet(nn.Module):
         self.head = head_helper.ResNetBasicHead(
             dim_in=[width_per_group * 32],
             num_classes=cfg.MODEL.NUM_CLASSES,
-            pool_size=[None, None]
-            if cfg.MULTIGRID.SHORT_CYCLE
-            else [
+            pool_size=[None] if cfg.MULTIGRID.SHORT_CYCLE else [
                 [
                     cfg.DATA.NUM_FRAMES // pool_size[0][0],
                     cfg.DATA.CROP_SIZE // 32 // pool_size[0][1],
