@@ -318,6 +318,7 @@ class TrainMeter(object):
             "loss": self.loss.get_win_median(),
             "lr": self.lr,
             "gpu_mem": "{:.2f} GB".format(misc.gpu_mem_usage()),
+            "RAM": "{:.2f}/{:.2f} GB".format(*misc.cpu_mem_usage()),
         }
         if not self._cfg.DATA.MULTI_LABEL:
             stats["top1_err"] = self.mb_top1_err.get_win_median()
