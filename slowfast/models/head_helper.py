@@ -52,7 +52,8 @@ class ResNetBasicHead(nn.Module):
             if pool_size[pathway] is None:
                 avg_pool = nn.AdaptiveAvgPool3d((1, 1, 1))
             else:
-                avg_pool = nn.AvgPool3d(pool_size[pathway], stride=1)
+                avg_pool = nn.AdaptiveAvgPool3d((1, 1, 1))
+                #avg_pool = nn.AvgPool3d(pool_size[pathway], stride=1)
             self.add_module("pathway{}_avgpool".format(pathway), avg_pool)
 
         if dropout_rate > 0.0:

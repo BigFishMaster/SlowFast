@@ -71,6 +71,7 @@ def get_start_end_pts(video_size, clip_size, clip_idx, num_clips,
         else:
             logger.warn("In train, video_start_idx {} should be smaller than delta {}.".format(
                 video_start_idx, delta))
+            # TODO: rethink this strategy?
             new_start_idx = max(delta-clip_size*0.1, 0)
             start_idx = random.uniform(new_start_idx, delta)
     else:
