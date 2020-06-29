@@ -260,7 +260,7 @@ def decode(
     Returns:
         frames (tensor): decoded frames from the video.
     """
-    assert clip_idx >= -1, "Not valied clip_idx {}".format(clip_idx)
+    assert clip_idx >= -1, "Not valid clip_idx {}".format(clip_idx)
     try:
         frames, fps, decode_all_video = pyav_decode(
             container,

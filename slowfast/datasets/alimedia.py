@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import random
 import torch.utils.data
 from fvcore.common.file_io import PathManager
@@ -89,6 +90,7 @@ class Alimedia(torch.utils.data.Dataset):
                 len(self._path_to_videos), path_to_file
             )
         )
+        self._path_to_videos = np.array(self._path_to_videos, dtype=np.string_)
 
     def __getitem__(self, index):
         """
@@ -164,14 +166,14 @@ class Alimedia(torch.utils.data.Dataset):
             video_container = None
             try:
                 video_container = container.get_video_container(
-                    self._path_to_videos[index],
+                    self._path_to_videos[index].decode(),
                     self.cfg.DATA_LOADER.ENABLE_MULTI_THREAD_DECODE,
                     self.cfg.DATA.DECODING_BACKEND,
                 )
             except Exception as e:
                 logger.info(
                     "Failed to load video from {} with error {}".format(
-                        self._path_to_videos[index], e
+                        self._path_to_videos[index].decode(), e
                     )
                 )
             # Select a random video if the current video was not able to access.
