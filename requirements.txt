@@ -1,7 +1,6 @@
 yacs>=0.1.6
 pyyaml>=5.1
 av==8.0.2
-matplotlib
 termcolor>=1.1
 simplejson
 tqdm
