@@ -1,5 +1,3 @@
-torch==1.4.0
-torchvision==0.5.0
 yacs>=0.1.6
 pyyaml>=5.1
 av==8.0.2
@@ -8,7 +6,7 @@ termcolor>=1.1
 simplejson
 tqdm
 psutil
-matplotlib
+matplotlib>=3.1.1
 sklearn
 tensorboard
 tabulate
@@ -17,5 +15,5 @@ yacs>=0.1.6
 fvcore>=0.1.1
 markdown>=2.6.8
 werkzeug>=0.11.15
-kiwisolver>=1.0.1
+kiwisolver>=1.1.0
 portalocker
