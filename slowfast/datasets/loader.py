@@ -66,7 +66,7 @@ def construct_loader(cfg, split, is_precise_bn=False):
             num_workers=cfg.DATA_LOADER.NUM_WORKERS,
             pin_memory=cfg.DATA_LOADER.PIN_MEMORY,
             drop_last=drop_last,
-            collate_fn=None
+            collate_fn=default_collate
         )
     return loader
 
