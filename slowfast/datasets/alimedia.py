@@ -14,7 +14,7 @@ logger = logging.get_logger(__name__)
 
 
 @DATASET_REGISTRY.register()
-class AliMedia(torch.utils.data.Dataset):
+class Alimedia(torch.utils.data.Dataset):
     def __init__(self, cfg, mode, num_retries=10):
         """
         Construct the Kinetics video loader with a given csv file. The format of
