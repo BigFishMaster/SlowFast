@@ -18,7 +18,7 @@ logger = logging.get_logger(__name__)
 class Alimedia(torch.utils.data.Dataset):
     def __init__(self, cfg, mode, num_retries=10):
         """
-        Construct the Kinetics video loader with a given csv file. The format of
+        Construct the Alimedia video loader with a given csv file. The format of
         the csv file is:
         ```
         path_to_video_1 start_1, end_1, label_1
@@ -36,7 +36,7 @@ class Alimedia(torch.utils.data.Dataset):
             num_retries (int): number of retries.
         """
         # Only support train, val, and test mode.
-        assert mode in ["train", "val", "test"], "Split '{}' not supported for Kinetics".format(mode)
+        assert mode in ["train", "val", "test"], "Split '{}' not supported for Alimedia".format(mode)
         self.mode = mode
         self.cfg = cfg
 
@@ -82,11 +82,11 @@ class Alimedia(torch.utils.data.Dataset):
                     self._spatial_temporal_idx.append(idx)
         assert (
             len(self._path_to_videos) > 0
-        ), "Failed to load Kinetics split {} from {}".format(
+        ), "Failed to load Alimedia split {} from {}".format(
             self._split_idx, path_to_file
         )
         logger.info(
-            "Constructing kinetics dataloader (size: {}) from {}".format(
+            "Constructing Alimedia dataloader (size: {}) from {}".format(
                 len(self._path_to_videos), path_to_file
             )
         )
