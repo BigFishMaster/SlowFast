@@ -52,7 +52,7 @@ class Alimedia(torch.utils.data.Dataset):
                 cfg.TEST.NUM_ENSEMBLE_VIEWS * cfg.TEST.NUM_SPATIAL_CROPS
             )
 
-        logger.info("Constructing Kinetics {}...".format(mode))
+        logger.info("Constructing Alimedia {}...".format(mode))
         self._construct_loader()
 
     def _construct_loader(self):
@@ -191,6 +191,7 @@ class Alimedia(torch.utils.data.Dataset):
                 temporal_sample_index,
                 self.cfg.TEST.NUM_ENSEMBLE_VIEWS,
                 target_fps=self.cfg.DATA.TARGET_FPS,
+                max_scale=max_scale,
                 start_sec=self._duration[index][0],
                 end_sec=self._duration[index][1],
             )

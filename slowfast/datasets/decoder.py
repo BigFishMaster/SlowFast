@@ -2,6 +2,7 @@ import math
 import numpy as np
 import random
 import torch
+import torchvision.transforms.functional as F
 import slowfast.utils.logging as logging
 logger = logging.get_logger(__name__)
 
@@ -59,6 +60,8 @@ def get_start_end_idx(video_size, clip_size, clip_idx, num_clips):
 
 def get_start_end_pts(video_size, clip_size, clip_idx, num_clips,
                       duration, time_base, start_sec, end_sec):
+    # duration: integer, video size in timebase units
+    # time_base: fraction, 1/15360.
     all_sec = duration * time_base
     video_start_idx = int(start_sec / all_sec * video_size)
     video_end_idx = int(end_sec / all_sec * video_size)
@@ -88,6 +91,7 @@ def get_start_end_pts(video_size, clip_size, clip_idx, num_clips,
 
     end_idx = start_idx + clip_size - 1
 
+    # pts_per_frame: 1024, typically.
     pts_per_frame = duration / video_size
     video_start_pts = int(start_idx * pts_per_frame)
     video_end_pts = int(end_idx * pts_per_frame)
@@ -96,7 +100,7 @@ def get_start_end_pts(video_size, clip_size, clip_idx, num_clips,
 
 
 def pyav_decode_stream(
-    container, start_pts, end_pts, stream, stream_name, buffer_size=0
+    container, start_pts, end_pts, stream, max_scale, stream_name
 ):
     """
     Decode the video with PyAV decoder.
@@ -106,6 +110,8 @@ def pyav_decode_stream(
             video frames.
         end_pts (int): the ending Presentation TimeStamp of the decoded frames.
         stream (stream): PyAV stream.
+        max_scale (int): keep the aspect ratio and resize the frame so
+            that shorter edge size is max_scale.
         stream_name (dict): a dictionary of streams. For example, {"video": 0}
             means video stream at stream index 0.
         buffer_size (int): number of additional frames to decode beyond end_pts.
@@ -117,29 +123,27 @@ def pyav_decode_stream(
     # margin pts.
     margin = 1024
     seek_offset = max(start_pts - margin, 0)
-
+    # seek to nearest key frame, and decode from it to get subsequent frames in [start_pts, end_pts].
     container.seek(seek_offset, any_frame=False, backward=True, stream=stream)
-    frames = {}
-    buffer_count = 0
+    frames = []
     max_pts = 0
     for frame in container.decode(**stream_name):
-        max_pts = max(max_pts, frame.pts)
         if frame.pts < start_pts:
             continue
         if frame.pts <= end_pts:
-            frames[frame.pts] = frame
+            max_pts = max(max_pts, frame.pts)
+            image = frame.to_image()
+            scaled_image = F.resize(image, size=max_scale)
+            frames.append(scaled_image)
         else:
-            buffer_count += 1
-            frames[frame.pts] = frame
-            if buffer_count >= buffer_size:
-                break
-    result = [frames[pts] for pts in sorted(frames)]
+            break
+    result = torch.as_tensor(np.stack(frames))
     return result, max_pts
 
 
 def pyav_decode(
     container, sampling_rate, num_frames, clip_idx, num_clips=10, target_fps=30,
-    start_sec=None, end_sec=None
+    max_scale=320, start_sec=None, end_sec=None
 ):
     """
     Convert the video from its original fps to the target_fps. If the video
@@ -160,6 +164,8 @@ def pyav_decode(
             given video.
         target_fps (int): the input video may has different fps, convert it to
             the target video fps before frame sampling.
+        max_scale (int): keep the aspect ratio and resize the frame so
+            that shorter edge size is max_scale.
         start_sec (float): starting second of the video, with a specified label.
         end_sec (float): ending second of the video, with a specified label.
     Returns:
@@ -189,13 +195,16 @@ def pyav_decode(
         decode_all_video = False
         if start_sec is not None and end_sec is not None:
             tb = float(container.streams.video[0].time_base)
-            video_start_pts, video_end_pts = get_start_end_pts(frames_length,
-                int(num_frames * sampling_rate * fps / target_fps),
-                clip_idx, num_clips, duration, tb, start_sec, end_sec)
+            clip_size = int(num_frames * sampling_rate * fps / target_fps)
+            video_start_pts, video_end_pts = get_start_end_pts(
+                frames_length, clip_size, clip_idx,
+                num_clips, duration, tb, start_sec, end_sec
+            )
         else:
+            clip_size = int(num_frames * sampling_rate * fps / target_fps)
             start_idx, end_idx = get_start_end_idx(
                 frames_length,
-                int(num_frames * sampling_rate * fps / target_fps),
+                clip_size,
                 clip_idx,
                 num_clips,
             )
@@ -209,17 +218,15 @@ def pyav_decode(
     frames = None
     # If video stream was found, fetch video frames from the video.
     if container.streams.video:
-        video_frames, max_pts = pyav_decode_stream(
+        frames, _ = pyav_decode_stream(
             container,
             video_start_pts,
             video_end_pts,
             container.streams.video[0],
+            max_scale,
             {"video": 0},
         )
         container.close()
-        frames = [frame.to_rgb().to_ndarray() for frame in video_frames]
-        # TODO: resize the frame before np.stack
-        frames = torch.as_tensor(np.stack(frames))
     return frames, fps, decode_all_video
 
 
@@ -230,6 +237,7 @@ def decode(
     clip_idx=-1,
     num_clips=10,
     target_fps=30,
+    max_scale=320,
     start_sec=None,
     end_sec=None,
 ):
@@ -252,9 +260,8 @@ def decode(
             the target video fps before frame sampling.
         backend (str): decoding backend includes `pyav` and `torchvision`. The
             default one is `pyav`.
-        max_spatial_scale (int): keep the aspect ratio and resize the frame so
-            that shorter edge size is max_spatial_scale. Only used in
-            `torchvision` backend.
+        max_scale (int): keep the aspect ratio and resize the frame so
+            that shorter edge size is max_scale.
         start_sec (float): starting second of the video, with a specified label.
         end_sec (float): ending second of the video, with a specified label.
     Returns:
@@ -269,6 +276,7 @@ def decode(
             clip_idx,
             num_clips,
             target_fps,
+            max_scale,
             start_sec,
             end_sec,
         )
@@ -280,9 +288,10 @@ def decode(
     if frames is None or frames.size(0) == 0:
         return None
 
+    clip_size = int(num_frames * sampling_rate * fps / target_fps)
     start_idx, end_idx = get_start_end_idx(
         frames.shape[0],
-        num_frames * sampling_rate * fps / target_fps,
+        clip_size,
         clip_idx if decode_all_video else 0,
         num_clips if decode_all_video else 1,
     )
