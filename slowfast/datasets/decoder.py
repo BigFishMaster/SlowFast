@@ -92,7 +92,7 @@ def get_start_end_pts(video_size, clip_size, clip_idx, num_clips,
     video_start_pts = int(start_idx * pts_per_frame)
     video_end_pts = int(end_idx * pts_per_frame)
 
-    return video_start_idx, video_end_pts
+    return video_start_pts, video_end_pts
 
 
 def pyav_decode_stream(
@@ -217,8 +217,8 @@ def pyav_decode(
             {"video": 0},
         )
         container.close()
-
         frames = [frame.to_rgb().to_ndarray() for frame in video_frames]
+        # TODO: resize the frame before np.stack
         frames = torch.as_tensor(np.stack(frames))
     return frames, fps, decode_all_video
 
