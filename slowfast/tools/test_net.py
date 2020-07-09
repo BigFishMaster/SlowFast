@@ -126,7 +126,7 @@ def test(cfg):
         cu.load_checkpoint(last_checkpoint, model, cfg.NUM_GPUS > 1)
     elif cfg.TRAIN.CHECKPOINT_FILE_PATH != "":
         # If no checkpoint found in TEST.CHECKPOINT_FILE_PATH or in the current
-        # checkpoint folder, try to load checkpint from
+        # checkpoint folder, try to load checkpoint from
         # TRAIN.CHECKPOINT_FILE_PATH and test it.
         cu.load_checkpoint(
             cfg.TRAIN.CHECKPOINT_FILE_PATH,

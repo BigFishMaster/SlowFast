@@ -108,7 +108,7 @@ class Alimedia(torch.utils.data.Dataset):
                 index of the video replacement that can be decoded.
         """
         short_cycle_idx = None
-        # When short cycle is used, input index is a tupple.
+        # When short cycle is used, input index is a tuple.
         if isinstance(index, tuple):
             index, short_cycle_idx = index
 
