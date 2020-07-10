@@ -3,6 +3,7 @@ from slowfast.utils.parser import load_config, parse_args
 
 from slowfast.tools.test_net import test
 from slowfast.tools.train_net import train
+from slowfast.tools.extract import extract
 
 
 def main():
@@ -16,6 +17,10 @@ def main():
     # Perform multi-clip testing.
     if cfg.TEST.ENABLE:
         launch_job(cfg=cfg, init_method=args.init_method, func=test)
+
+    # Perform feature extraction.
+    if cfg.MODEL.EXTRACTOR:
+        extract(cfg)
 
 
 if __name__ == "__main__":

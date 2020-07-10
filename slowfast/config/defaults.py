@@ -89,6 +89,9 @@ _C.TEST.BATCH_SIZE = 8
 # Path to the checkpoint to load the initial weight.
 _C.TEST.CHECKPOINT_FILE_PATH = ""
 
+# Path to output file for feature extraction.
+_C.TEST.OUTPUT_FEATURE_FILE = ""
+
 # Number of clips to sample from a video uniformly for aggregating the
 # prediction results.
 _C.TEST.NUM_ENSEMBLE_VIEWS = 10
@@ -169,6 +172,8 @@ _C.NONLOCAL.POOL = [
 # Model options
 # -----------------------------------------------------------------------------
 _C.MODEL = CfgNode()
+
+_C.MODEL.EXTRACTOR = False
 
 # Model architecture.
 _C.MODEL.ARCH = "slowfast"

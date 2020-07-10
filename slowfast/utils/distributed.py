@@ -90,7 +90,7 @@ def is_master_proc(num_gpus=8):
     """
     Determines if the current process is the master process.
     """
-    if torch.distributed.is_initialized():
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
         return dist.get_rank() % num_gpus == 0
     else:
         return True

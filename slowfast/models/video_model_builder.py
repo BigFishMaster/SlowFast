@@ -148,6 +148,7 @@ class SlowFast(nn.Module):
         self.norm_module = get_norm(cfg)
         self.num_pathways = 2
         self._construct_network(cfg)
+        self.extractor = cfg.MODEL.EXTRACTOR
         init_helper.init_weights(
             self, cfg.MODEL.FC_INIT_STD, cfg.RESNET.ZERO_INIT_FINAL_BN
         )
@@ -355,7 +356,10 @@ class SlowFast(nn.Module):
         x = self.s4(x)
         x = self.s4_fuse(x)
         x = self.s5(x)
-        x = self.head(x)
+        if self.extractor:
+            x = self.head.extract(x)
+        else:
+            x = self.head(x)
         return x
 
 

@@ -96,3 +96,25 @@ class ResNetBasicHead(nn.Module):
 
         x = x.view(x.shape[0], -1)
         return x
+
+    def extract(self, inputs):
+        assert (
+                len(inputs) == self.num_pathways
+        ), "Input tensor does not contain {} pathway".format(self.num_pathways)
+        pool_out = []
+        for pathway in range(self.num_pathways):
+            m = getattr(self, "pathway{}_avgpool".format(pathway))
+            pool_out.append(m(inputs[pathway]))
+        x = torch.cat(pool_out, 1)
+        # (N, C, T, H, W) -> (N, T, H, W, C).
+        x = x.permute((0, 2, 3, 4, 1))
+        # (N, C)
+        out_feat = x.mean([1, 2, 3])
+
+        if hasattr(self, "dropout"):
+            x = self.dropout(x)
+        x = self.projection(x)
+        x = self.act(x)
+        # (N, Cls)
+        out_cls = x.mean([1, 2, 3])
+        return out_feat, out_cls
