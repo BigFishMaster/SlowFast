@@ -34,7 +34,7 @@ def run(loader, model, cfg):
             inputs = frames[:, start:end]
             inputs = utils.pack_pathway_output(cfg, inputs)
             for i in range(len(inputs)):
-                inputs[i] = inputs[i].unsqueeze(0)
+                inputs[i] = inputs[i].unsqueeze(0).contiguous()
                 if torch.cuda.is_available():
                     inputs[i] = inputs[i].cuda(non_blocking=True)
             feat, cls = model(inputs)
