@@ -19,6 +19,7 @@ def run(loader, model, cfg):
     num_frames = cfg.DATA.NUM_FRAMES
     step_frames = int(num_frames / 2)
     fout = open(cfg.TEST.OUTPUT_FEATURE_FILE, "w")
+    batch_size = cfg.TEST.BATCH_SIZE
     for v_ind, (frames, labels, video_idx, meta) in enumerate(loader):
         # Transfer the data to the current GPU device.
         if v_ind % 10 == 0:
@@ -26,20 +27,30 @@ def run(loader, model, cfg):
         length = frames.shape[1]
         features = []
         classifiers = []
+        batch = []
         for k in range(0, length, step_frames):
             start = k
             end = min(k + num_frames, length)
+            if len(batch) == batch_size or ((end - start < num_frames) and len(batch) > 0):
+                # forward
+                # batch_size x 3 num_slow_frames x 224 x 224
+                b0 = torch.as_tensor(np.stack([b[0] for b in batch])).contiguous()
+                # batch_size x 3 num_fast_frames x 224 x 224
+                b1 = torch.as_tensor(np.stack([b[1] for b in batch])).contiguous()
+                if torch.cuda.is_available():
+                    b0 = b0.cuda(non_blocking=True)
+                    b1 = b1.cuda(non_blocking=True)
+                batch = [b0, b1]
+                feat, cls = model(batch)
+                features.append(feat.detach().cpu())
+                classifiers.append(cls.detach().cpu())
+                batch = []
             if end - start < num_frames:
                 break
             inputs = frames[:, start:end]
             inputs = utils.pack_pathway_output(cfg, inputs)
-            for i in range(len(inputs)):
-                inputs[i] = inputs[i].unsqueeze(0).contiguous()
-                if torch.cuda.is_available():
-                    inputs[i] = inputs[i].cuda(non_blocking=True)
-            feat, cls = model(inputs)
-            features.append(feat.detach().cpu())
-            classifiers.append(cls.detach().cpu())
+            batch.append(inputs)
+
         # length of features: ceil((length - num_frames + 1)/step_frames)
         features = torch.cat(features, dim=0).numpy()
         classifiers = torch.cat(classifiers, dim=0).numpy()
