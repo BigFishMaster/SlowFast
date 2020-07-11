@@ -23,6 +23,7 @@ def run(loader, model, cfg):
     batch_size = cfg.TEST.BATCH_SIZE
     start_time = time.time()
     for v_ind, (frames, labels, video_idx, meta) in enumerate(loader):
+        print("load frames time:", time.time() - start_time)
         # Transfer the data to the current GPU device.
         if v_ind % 10 == 0:
             print("process video index:", v_ind, "total:", len(loader))
