@@ -56,6 +56,7 @@ def run(loader, model, cfg):
         meta["step_frames"] = step_frames
         json_str = json.dumps(meta)
         fout.write(json_str + "\n")
+        fout.flush()
     fout.close()
 
 
