@@ -73,6 +73,7 @@ class Extractor:
             frames.append(scaled_image)
         video_container.close()
         # sampling
+        original_frames = len(frames)
         frames = frames[0:len(frames):target_sampling_rate]
         frames = torch.as_tensor(np.stack(frames))
         # make the min length of frames be NUM_FRAMES.
@@ -102,6 +103,7 @@ class Extractor:
             "video_fps": fps,
             "target_sampling_rate": target_sampling_rate,
             "sampled_frames": frames.shape[1],
+            "original_frames": original_frames,
             "video_seconds": video_seconds,
             "video_name": self._path_to_videos[index].decode().split("/")[-1],
             "start_seconds": start,
