@@ -14,7 +14,7 @@ logger = logging.get_logger(__name__)
 class Extractor:
     def __init__(self, cfg):
         self.cfg = cfg
-        path_to_file = os.path.join(self.cfg.DATA.PATH_TO_DATA_DIR, "test.txt")
+        path_to_file = self.cfg.TEST.INPUT_FILE
         assert PathManager.exists(path_to_file), "{} dir not found".format(
             path_to_file
         )

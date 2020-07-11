@@ -90,6 +90,7 @@ _C.TEST.BATCH_SIZE = 8
 _C.TEST.CHECKPOINT_FILE_PATH = ""
 
 # Path to output file for feature extraction.
+_C.TEST.INPUT_FILE = ""
 _C.TEST.OUTPUT_FEATURE_FILE = ""
 
 # Number of clips to sample from a video uniformly for aggregating the
