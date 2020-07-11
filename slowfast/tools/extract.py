@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import json
 import os
 import torch
@@ -20,6 +21,7 @@ def run(loader, model, cfg):
     step_frames = int(num_frames / 2)
     fout = open(cfg.TEST.OUTPUT_FEATURE_FILE, "w")
     batch_size = cfg.TEST.BATCH_SIZE
+    start_time = time.time()
     for v_ind, (frames, labels, video_idx, meta) in enumerate(loader):
         # Transfer the data to the current GPU device.
         if v_ind % 10 == 0:
@@ -68,6 +70,10 @@ def run(loader, model, cfg):
         json_str = json.dumps(meta)
         fout.write(json_str + "\n")
         fout.flush()
+        period = time.time() - start_time
+        print("video index: %d, length: %d, period: %.2f sec, speed: %.2f sec/f."
+              %(v_ind, length, period, period/length))
+        start_time = time.time()
     fout.close()
 
 
