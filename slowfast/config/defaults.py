@@ -177,6 +177,7 @@ _C.NONLOCAL.POOL = [
 _C.MODEL = CfgNode()
 
 _C.MODEL.EXTRACTOR = False
+_C.MODEL.VIDEO_EXTRACTOR = False
 
 # Model architecture.
 _C.MODEL.ARCH = "slowfast"

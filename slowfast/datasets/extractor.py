@@ -76,11 +76,12 @@ class Extractor:
         original_frames = len(frames)
         frames = frames[0:len(frames):target_sampling_rate]
         frames = torch.as_tensor(np.stack(frames))
+        # TODO: this is useful if GlobalAvgPool is used in the SlowFast Network.
         # make the min length of frames be NUM_FRAMES.
-        if len(frames) < self.cfg.DATA.NUM_FRAMES:
-            indices = torch.linspace(0, len(frames), self.cfg.DATA.NUM_FRAMES)
-            indices = torch.clamp(indices, 0, frames.shape[0] - 1).long()
-            frames = torch.index_select(frames, 0, indices)
+        #if len(frames) < self.cfg.DATA.NUM_FRAMES:
+        #    indices = torch.linspace(0, len(frames), self.cfg.DATA.NUM_FRAMES)
+        #    indices = torch.clamp(indices, 0, frames.shape[0] - 1).long()
+        #    frames = torch.index_select(frames, 0, indices)
 
         frames = utils.tensor_normalize(frames, self.cfg.DATA.MEAN, self.cfg.DATA.STD)
         # T H W C -> C T H W

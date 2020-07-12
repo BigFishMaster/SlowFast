@@ -97,7 +97,7 @@ class ResNetBasicHead(nn.Module):
         x = x.view(x.shape[0], -1)
         return x
 
-    def extract(self, inputs):
+    def clip_extract(self, inputs):
         assert (
                 len(inputs) == self.num_pathways
         ), "Input tensor does not contain {} pathway".format(self.num_pathways)
@@ -118,3 +118,15 @@ class ResNetBasicHead(nn.Module):
         # (N, Cls)
         out_cls = x.mean([1, 2, 3])
         return out_feat, out_cls
+
+    def video_extract(self, inputs):
+        # N C T H W -> N C T
+        N0, C0, T0, H0, W0 = inputs[0].shape
+        slow = torch.mean(inputs[0], dim=[3, 4])
+        N1, C1, T1, H1, W1 = inputs[1].shape
+        inputs[1] = inputs[1].reshape(N1, C1, T0, T1//T0, H1, W1)
+        fast = torch.mean(inputs[1], dim=[3, 4, 5])
+        x = torch.cat([slow, fast], 1)
+        # (N, C, T) -> (N, T, C).
+        x = x.permute((0, 2, 1)).squeeze(0)
+        return x

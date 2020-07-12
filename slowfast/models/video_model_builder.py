@@ -148,7 +148,6 @@ class SlowFast(nn.Module):
         self.norm_module = get_norm(cfg)
         self.num_pathways = 2
         self._construct_network(cfg)
-        self.extractor = cfg.MODEL.EXTRACTOR
         init_helper.init_weights(
             self, cfg.MODEL.FC_INIT_STD, cfg.RESNET.ZERO_INIT_FINAL_BN
         )
@@ -343,7 +342,11 @@ class SlowFast(nn.Module):
             act_func=cfg.MODEL.HEAD_ACT,
         )
 
-    def forward(self, x, bboxes=None):
+    def forward(self, x, ftype="class", bboxes=None):
+        # ftype:
+        # class: classification score
+        # clip: feature and score after pooling
+        # video: only feature after pooling
         x = self.s1(x)
         x = self.s1_fuse(x)
         x = self.s2(x)
@@ -356,10 +359,12 @@ class SlowFast(nn.Module):
         x = self.s4(x)
         x = self.s4_fuse(x)
         x = self.s5(x)
-        if self.extractor:
-            x = self.head.extract(x)
-        else:
+        if ftype == "class":
             x = self.head(x)
+        elif ftype == "clip":
+            x = self.head.clip_extract(x)
+        elif ftype == "video":
+            x = self.head.video_extract(x)
         return x
 
 
