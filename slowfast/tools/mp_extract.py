@@ -124,6 +124,6 @@ def extract(cfg):
         video_data = result_queue.get()
         run(cfg, model, video_data, num_frames, step_frames, fout, batch_size)
         period = time.time() - start_time
-        print("video index: %d, period: %.2f sec, speed: %.2f sec/f."
-              %(i, period, period/(i+1)))
+        logger.info("video index: %d, period: %.2f sec, speed: %.2f sec/video."
+                    %(i, period, period/(i+1)))
     fout.close()
