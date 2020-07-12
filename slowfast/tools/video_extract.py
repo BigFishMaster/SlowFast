@@ -93,7 +93,7 @@ def get_result(cfg, gpu_id, video_queue, result_queue):
         cu.load_checkpoint(
             path_to_checkpoint=cfg.TEST.CHECKPOINT_FILE_PATH,
             model=model,
-            data_parallel=True,
+            data_parallel=False,
             optimizer=None,
             inflation=False,
             convert_from_caffe2=cfg.TEST.CHECKPOINT_TYPE == "caffe2",
