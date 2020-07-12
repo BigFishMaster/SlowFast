@@ -15,15 +15,15 @@ from torch import multiprocessing
 logger = logging.get_logger(__name__)
 
 
-def get_video(dataloader, index_queue, video_queue):
+def get_video(dataloader, index_queue, result_queue):
     while True:
         index = index_queue.get()
         video_data = dataloader[index]
-        video_queue.put(video_data)
+        result_queue.put(video_data)
 
 
 @torch.no_grad()
-def run(cfg, model, video_data, num_frames, batch_size):
+def run(cfg, model, video_data, num_frames, batch_size, fout):
     frames, labels, video_idx, meta = video_data
     slow, fast = frames
     C, T_show, H, W = slow.shape
@@ -81,14 +81,28 @@ def run(cfg, model, video_data, num_frames, batch_size):
     meta["video_feature"] = feat_name
     meta["step_frames"] = num_frames_fast
     json_str = json.dumps(meta)
-    return json_str
+    fout.write(json_str + "\n")
+    fout.flush()
 
 
-def get_result(cfg, gpu_id, video_queue, result_queue):
-    torch.cuda.set_device(gpu_id)
+def video_extract(cfg):
+    ctx = multiprocessing.get_context("spawn")
+    # Setup logging format.
+    logging.setup_logging(cfg.OUTPUT_DIR)
+    logger.info("Extract with config:")
+    logger.info(cfg)
+
     # initialize model
     name = cfg.MODEL.MODEL_NAME
     model = MODEL_REGISTRY.get(name)(cfg)
+    if torch.cuda.is_available():
+        model = torch.nn.DataParallel(model).cuda()
+    model.eval()
+
+    # initialize data loader
+    dataloader = Extractor(cfg)
+    logger.info("Testing model for {} videos".format(len(dataloader)))
+
     if cfg.TEST.CHECKPOINT_FILE_PATH != "":
         cu.load_checkpoint(
             path_to_checkpoint=cfg.TEST.CHECKPOINT_FILE_PATH,
@@ -101,53 +115,28 @@ def get_result(cfg, gpu_id, video_queue, result_queue):
     else:
         logger.info("Testing with random initialization. Only for debugging.")
 
-    if torch.cuda.is_available():
-        model = model.cuda()
-    model.eval()
-    num_frames = cfg.DATA.NUM_FRAMES
-    batch_size = cfg.TEST.BATCH_SIZE
-    while True:
-        video_data = video_queue.get()
-        result = run(cfg, model, video_data, num_frames, batch_size)
-        result_queue.put(result)
-
-
-def video_extract(cfg):
-    ctx = multiprocessing.get_context("spawn")
-    # Setup logging format.
-    logging.setup_logging(cfg.OUTPUT_DIR)
-    logger.info("Extract with config:")
-    logger.info(cfg)
-
-    # initialize data loader
-    dataloader = Extractor(cfg)
-    logger.info("Testing model for {} videos".format(len(dataloader)))
-
     index_queue = ctx.Queue()
-    video_queue = ctx.Queue()
     result_queue = ctx.Queue()
-    video_workers = [ctx.Process(target=get_video, args=(dataloader, index_queue, video_queue))
-                     for i in range(cfg.TEST.WORKERS)]
-    for w in video_workers:
-        w.daemon = True
-        w.start()
+    workers = [ctx.Process(target=get_video, args=(dataloader, index_queue, result_queue))
+               for i in range(cfg.TEST.WORKERS)]
 
-    result_workers = [ctx.Process(target=get_result, args=(cfg, gpu_id, video_queue, result_queue))
-                      for gpu_id in range(cfg.NUM_GPUS)]
-    for w in result_workers:
+    for w in workers:
         w.daemon = True
         w.start()
 
     num_video = len(dataloader)
+
     for i in range(num_video):
         index_queue.put(i)
 
     # NUM_FRAMES must be divided by ALPHA.
-    start_time = time.time()
+    num_frames = cfg.DATA.NUM_FRAMES
+    batch_size = cfg.TEST.BATCH_SIZE
     fout = open(cfg.TEST.OUTPUT_FEATURE_FILE, "w")
+    start_time = time.time()
     for i in range(num_video):
-        result = result_queue.get()
-        fout.write(result + "\n")
+        video_data = result_queue.get()
+        run(cfg, model, video_data, num_frames, batch_size, fout)
         period = time.time() - start_time
         logger.info("video index: %d, period: %.2f sec, speed: %.2f sec/video."
                     %(i, period, period/(i+1)))
