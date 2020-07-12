@@ -3,7 +3,7 @@ from slowfast.utils.parser import load_config, parse_args
 
 from slowfast.tools.test_net import test
 from slowfast.tools.train_net import train
-from slowfast.tools.extract import extract
+from slowfast.tools.mp_extract import extract
 
 
 def main():
