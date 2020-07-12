@@ -86,6 +86,8 @@ _C.TEST.DATASET = "kinetics"
 # Total mini-batch size
 _C.TEST.BATCH_SIZE = 8
 
+_C.TEST.WORKERS = 4
+
 # Path to the checkpoint to load the initial weight.
 _C.TEST.CHECKPOINT_FILE_PATH = ""
 
