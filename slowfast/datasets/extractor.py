@@ -111,7 +111,14 @@ class Extractor:
             "end_seconds": end,
             "video_label": label,
         }
-        return frames, label, index, meta
+        if self.cfg.MODEL.VIDEO_EXTRACTOR:
+            length = (frames.shape[1] // self.cfg.SLOWFAST.ALPHA) * self.cfg.SLOWFAST.ALPHA
+            # C x T x H x W
+            frames = frames[:, :length]
+            frames = utils.pack_pathway_output(self.cfg, frames)
+            return frames, label, index, meta
+        else:
+            return frames, label, index, meta
 
     def __len__(self):
         return len(self._path_to_videos)

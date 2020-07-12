@@ -128,5 +128,6 @@ class ResNetBasicHead(nn.Module):
         fast = torch.mean(inputs[1], dim=[3, 4, 5])
         x = torch.cat([slow, fast], 1)
         # (N, C, T) -> (N, T, C).
-        x = x.permute((0, 2, 1)).squeeze(0)
+        x = x.permute((0, 2, 1))
+        x = x.reshape(-1, x.shape[2])
         return x
